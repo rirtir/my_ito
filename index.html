@@ -73,7 +73,12 @@
     h1 { font-size:20vh; margin:0 0 20px 0; }
     h2 { font-size:7vw; }
     h3 { font-size:5vw; }
+    p { font-size:4vw; }
     #topic, #resultMessage { font-size:4vw; }
+    #confirmToggle { 
+      width:3vw;
+      height:3vw;
+    }
     .number_box { font-size:5vw; }
     button {
       padding:1vh 2vh;
@@ -103,7 +108,12 @@
     h1 { font-size:20vw; margin:0 0 20px 0; }
     h2 { font-size:3vw; }
     h3 { font-size:2vw; }
-    #topic, #resultMessage { font-size:1vw; }
+    p { font-size:1.5vw; }
+    #topic, #resultMessage { font-size:1.5vw; }
+    #confirmToggle { 
+      width:1.5vw;
+      height:1.5vw;
+    }
     .number_box { font-size:3vw; }
     button {
       padding:1vw 2vw;
@@ -136,6 +146,12 @@
   <h1>ito</h1>
   <h2>人数を選んでください</h2>
   <input type="number" class="number_box" id="playerCount" min="2" max="10" value="4">
+  <br>
+  <label>
+    <p>
+    <input type="checkbox" id="confirmToggle" checked>
+    ダイアログを表示</p>
+  </label>
   <br>
   <button onclick="startGame()">開始</button>
 </div>
@@ -172,6 +188,7 @@
 let players = [];
 let currentPlayerIndex = 0;
 let revealed = [];
+let confirmOnReveal = true; // 公開時にダイアログを出すかどうか
 let topics = [
 "旅先ですることの人気（1:人気ない-100:人気ある）",
 "白米に合いそうなもの（1:合わない-100:合う）",
@@ -393,7 +410,7 @@ let topics = [
 "友達としたい冒険（1:したくない-100:したい）",
 "将来やってみたい仕事（1:やりたくない-100:やりたい）",
 "恋人と見たい景色（1:見なくてもいい-100:見たい）",
-"幸せを感じる瞬間（1:感じない-100:感じる）"
+"幸せを感じる瞬間（1:感じない-100:感じる）",
 "眠る前に考えること（1:考えない-100:考える）",
 "人生で一番楽しかった瞬間（1:楽しくない-100:楽しい）",
 "絶対にやりたくないこと（1:やってもいい-100:やりたくない）",
@@ -419,7 +436,7 @@ let topics = [
 "AIに任せたいこと（1:任せたくない-100:任せたい）",
 "もし一週間だけ超人になれたらしたいこと（1:したくない-100:したい）",
 "未来の子供に伝えたいこと（1:伝えなくてもいい-100:伝えたい）",
-"宇宙旅行で持っていきたいもの（1:不要-100:必要）"
+"宇宙旅行で持っていきたいもの（1:不要-100:必要）",
 "いま食べたいもの（1:食べたくない-100:食べたい）",
 "夜中に目が覚めたときにやりたいこと（1:やりたくない-100:やりたい）",
 "お風呂で歌いたい曲（1:歌いたくない-100:歌いたい）",
@@ -442,6 +459,7 @@ function shuffle(array) {
 
 function startGame() {
   const n = parseInt(document.getElementById("playerCount").value, 10);
+  confirmOnReveal = document.getElementById("confirmToggle").checked; // ←チェック状態を保存
   let numbers = shuffle(Array.from({length:100}, (_,i)=>i+1));
   players = [];
   revealed = [];
@@ -507,9 +525,11 @@ function renderRevealButtons() {
 function revealNumber(pid) {
   const p = players.find(x => x.id == pid);
   if (!p) return;
-  if (confirm(pid + "Pの数字を公開します。よろしいですか？")) {
+
+  // ダイアログONなら確認、OFFなら即公開
+  if (!confirmOnReveal || confirm(pid + "Pの数字を公開します。よろしいですか？")) {
     p.revealed = true;
-    revealed.push({ id: p.id, num: p.num }); // ←ここを修正！
+    revealed.push({ id: p.id, num: p.num });
 
     let card = document.createElement("div");
     card.className = "card";
