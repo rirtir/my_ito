@@ -153,7 +153,6 @@
 <div id="game" class="hidden">
   <h2>お題</h2>
   <div id="topic"></div>
-  <h3>議論中</h3>
   <button onclick="recheckNumber()">自分の数字を確認</button>
   <h3>数字を公開</h3>
   <div id="revealArea"></div>
@@ -577,7 +576,7 @@ function finishGame() {
   }
 
   document.getElementById("resultMessage").textContent =
-    success ? "成功！みんな順番通りに出せました！" : "失敗！順番が乱れました。";
+    success ? "成功！" : "失敗！";
 }
 
 
