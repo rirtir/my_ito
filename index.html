@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ito風ゲーム</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      height:85vh;
+      width:100%;
+      margin-left:0; margin-right:0;
+      margin-top:auto; margin-bottom:auto; padding:0;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:#f0f0f0;
+      text-align:center;
+    }
+    @media screen and (orientation: portrait) {
+      h1 {
+        font-size:20vh;
+        margin:0 0 20px 0;
+      }
+      h2 {
+        font-size:7vw;
+      }
+      h3 {
+        font-size:5vw;
+      }
+      #topic {
+        font-size:4vw;
+      }
+      #resultMessage {
+        font-size:4vw;
+      }
+      .number_box {
+        font-size:5vw;
+      }
+      button {
+        padding:1vh 2vh;
+        margin:1vh;
+        font-size:2.5vh;
+        border:none;
+        border-radius:1vh;
+        background:#4CAF50;
+        color:white;
+        cursor:pointer;
+        transition: background 0.2s;
+      }
+      .card {
+        width:16vw;
+        height:24vw;
+        margin-left:-2vw; /* 被らせる */
+        background:white;
+        border-radius:2vw;
+        box-shadow:0 0.8vw 1.6vw rgba(0,0,0,0.2);
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        font-size:9.5vw;
+        opacity:0;
+        transform:translateY(-4vw);
+        animation: fadeIn 0.5s forwards;
+        position:relative;
+        z-index:1; /* 後から出すカードを上に */
+      }
+      .card:first-child {
+        margin-left:0; /* 最初のカードは左端から */
+      }
+      .card .playerLabel {
+        font-size:3vw;
+        position:absolute;
+        top:1vw;
+        left:0;
+        right:0;
+        text-align:center;
+        color:#555;
+      }
+      #revealedLog {
+        display:flex;
+        justify-content:center;
+        margin-top:4vw;
+        position:relative;
+      }
+    }
+    @media screen and (orientation: landscape) {
+      h1 {
+        font-size:20vw;
+        margin:0 0 20px 0;
+      }
+      h2 {
+        font-size:3vw;
+      }
+      h3 {
+        font-size:2vw;
+      }
+      #topic {
+        font-size:1vw;
+      }
+      #resultMessage {
+        font-size:1vw;
+      }
+      .number_box {
+        font-size:3vw;
+      }
+      button {
+        padding:1vw 2vw;
+        margin:1vh;
+        font-size:2.5vw;
+        border:none;
+        border-radius:1vw;
+        background:#4CAF50;
+        color:white;
+        cursor:pointer;
+        transition: background 0.2s;
+      }
+      .card {
+        width:16vh;
+        height:24vh;
+        margin-left:-2vh; /* 被らせる */
+        background:white;
+        border-radius:2vh;
+        box-shadow:0 0.8vh 1.6vh rgba(0,0,0,0.2);
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        font-size:9.5vh;
+        opacity:0;
+        transform:translateY(-4vw);
+        animation: fadeIn 0.5s forwards;
+        position:relative;
+        z-index:1; /* 後から出すカードを上に */
+      }
+      .card:first-child {
+        margin-left:0; /* 最初のカードは左端から */
+      }
+      .card .playerLabel {
+        font-size:3vh;
+        position:absolute;
+        top:1vh;
+        left:0;
+        right:0;
+        text-align:center;
+        color:#555;
+      }
+      #revealedLog {
+        display:flex;
+        justify-content:center;
+        margin-top:4vh;
+        position:relative;
+      }
+    }
+    .hidden { display:none; }
+    
+    button:hover { background:#45a049; }
+    
+    @keyframes fadeIn {
+      to { opacity:1; transform:translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="setup">
+  <h1>ito</h1>
+  <h2>人数を選んでください</h2>
+  <input type="number" class="number_box" id="playerCount" min="2" max="10" value="4">
+  <br>
+  <button onclick="startGame()">開始</button>
+</div>
+
+<div id="assign" class="hidden">
+  <h2 id="assignTitle"></h2>
+  <button id="assignOkBtn" onclick="showNumber()">OK</button>
+</div>
+
+<div id="showNumber" class="hidden">
+  <h2 id="numberMessage"></h2>
+  <button onclick="nextPlayer()">次へ</button>
+</div>
+
+<div id="game" class="hidden">
+  <h2>お題</h2>
+  <div id="topic"></div>
+  <h3>議論中</h3>
+  <button onclick="recheckNumber()">自分の数字を確認</button>
+  <h3>数字を公開</h3>
+  <div id="revealArea"></div>
+  <div id="revealedLog"></div>
+</div>
+
+<div id="result" class="hidden">
+  <h2>ゲーム結果</h2>
+  <div id="resultMessage"></div>
+  <div id="revealedLog"></div> <!-- 結果画面でも同じカードを表示 -->
+  <br>
+  <button onclick="restartGame()">もう一度遊ぶ</button>
+  <button onclick="backToStart()">最初に戻る</button>
+</div>
+
+<script>
+let players = [];
+let currentPlayerIndex = 0;
+let revealed = [];
+let topics = ["強い動物","大きい建物","人気の食べ物","高価なもの","寒い場所"];
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function startGame() {
+  const n = parseInt(document.getElementById("playerCount").value, 10);
+  let numbers = shuffle(Array.from({length:100}, (_,i)=>i+1));
+  players = [];
+  revealed = [];
+  document.getElementById("revealedLog").innerHTML = ""; // 前回のカードを消す
+  for (let i=0; i<n; i++) {
+    players.push({id: i+1, num: numbers[i], revealed: false});
+  }
+  currentPlayerIndex = 0;
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("assign").classList.remove("hidden");
+  document.getElementById("assignTitle").textContent = players[0].id + "Pの人だけ見てください";
+
+  let topic = topics[Math.floor(Math.random()*topics.length)];
+  document.getElementById("topic").textContent = topic;
+}
+
+function showNumber() {
+  const p = players[currentPlayerIndex];
+  document.getElementById("assign").classList.add("hidden");
+  document.getElementById("showNumber").classList.remove("hidden");
+  document.getElementById("numberMessage").textContent = 
+    "あなたは " + p.num + " です";
+}
+
+function nextPlayer() {
+  currentPlayerIndex++;
+  if (currentPlayerIndex < players.length) {
+    document.getElementById("showNumber").classList.add("hidden");
+    document.getElementById("assign").classList.remove("hidden");
+    document.getElementById("assignTitle").textContent = 
+      players[currentPlayerIndex].id + "Pの人だけ見てください";
+  } else {
+    document.getElementById("showNumber").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+    renderRevealButtons();
+  }
+}
+
+function recheckNumber() {
+  const pid = prompt("確認したいプレイヤー番号を入力してください (例: 1)");
+  if (!pid) return;
+  const p = players.find(x => x.id == pid);
+  if (p) {
+    alert(pid + "Pの数字は " + p.num + " です");
+  } else {
+    alert("該当プレイヤーがいません");
+  }
+}
+
+function renderRevealButtons() {
+  const area = document.getElementById("revealArea");
+  area.innerHTML = "";
+  players.forEach(p=>{
+    if (!p.revealed) {
+      let btn = document.createElement("button");
+      btn.textContent = p.id + "Pを公開";
+      btn.onclick = ()=>revealNumber(p.id);
+      area.appendChild(btn);
+    }
+  });
+}
+
+function revealNumber(pid) {
+  const p = players.find(x=>x.id==pid);
+  if (!p) return;
+  if (confirm(pid+"Pの数字を公開します。よろしいですか？")) {
+    p.revealed = true;
+    revealed.push(p.num);
+
+    let card = document.createElement("div");
+    card.className = "card";
+    card.style.zIndex = revealed.length; // 後から出すほど上に
+    let label = document.createElement("div");
+    label.className = "playerLabel";
+    label.textContent = p.id + "P";
+    let num = document.createElement("div");
+    num.textContent = p.num;
+    card.appendChild(label);
+    card.appendChild(num);
+
+    document.getElementById("revealedLog").appendChild(card);
+
+    renderRevealButtons();
+    if (revealed.length === players.length) {
+      finishGame();
+    }
+  }
+}
+
+function finishGame() {
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("result").classList.remove("hidden");
+
+  let success = true;
+  for (let i=1; i<revealed.length; i++) {
+    if (revealed[i] < revealed[i-1]) {
+      success = false;
+      break;
+    }
+  }
+  document.getElementById("resultMessage").textContent = 
+    success ? "成功！みんな順番通りに出せました！" : "失敗！順番が乱れました。";
+}
+
+function restartGame() {
+  document.getElementById("result").classList.add("hidden");
+  startGame();
+}
+
+function backToStart() {
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("setup").classList.remove("hidden");
+}
+</script>
+</body>
+</html>
